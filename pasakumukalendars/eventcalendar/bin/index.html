@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="lv">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pasākumu Kalendārs</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4a6fa5, #2d4373);
+            color: #fff;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            opacity: .8;
+            margin-top: .25rem;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* ── Calendar grid ── */
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+        }
+
+        .calendar-nav button {
+            background: #4a6fa5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: .45rem .9rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background .2s;
+        }
+
+        .calendar-nav button:hover {
+            background: #2d4373;
+        }
+
+        .calendar-nav span {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .calendar-grid {
+            background: #fff;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+            overflow: hidden;
+        }
+
+        .day-names {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #4a6fa5;
+            color: #fff;
+        }
+
+        .day-names div {
+            text-align: center;
+            padding: .55rem;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        .days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e2e8f0;
+        }
+
+        .day {
+            background: #fff;
+            min-height: 80px;
+            padding: .4rem;
+            position: relative;
+            cursor: default;
+        }
+
+        .day.empty {
+            background: #f7fafc;
+        }
+
+        .day.today {
+            background: #ebf4ff;
+        }
+
+        .day.today .day-num {
+            color: #4a6fa5;
+            font-weight: 800;
+        }
+
+        .day.past {
+            background: #f9f9f9;
+        }
+
+        .day-num {
+            font-size: .85rem;
+            color: #718096;
+            margin-bottom: .2rem;
+        }
+
+        /* event dots inside day cell */
+        .event-dot {
+            display: block;
+            border-radius: 4px;
+            padding: .15rem .35rem;
+            font-size: .7rem;
+            color: #fff;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .event-dot:hover {
+            opacity: .85;
+        }
+
+        .event-dot.future {
+            background: #4a6fa5;
+        }
+
+        .event-dot.past-ev {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        /* ── Event list ── */
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 2rem 0 .75rem;
+            padding-left: .5rem;
+            border-left: 4px solid #4a6fa5;
+        }
+
+        .event-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .event-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .07);
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .event-card.past-card {
+            opacity: .6;
+        }
+
+        .event-info h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: .3rem;
+        }
+
+        .event-meta {
+            font-size: .85rem;
+            color: #718096;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .event-meta span::before {
+            margin-right: .3rem;
+        }
+
+        .event-meta .meta-time::before {
+            content: "🕐";
+        }
+
+        .event-meta .meta-loc::before {
+            content: "📍";
+        }
+
+        .event-meta .meta-date::before {
+            content: "📅";
+        }
+
+        .btn-register {
+            background: #4a6fa5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: .55rem 1.1rem;
+            cursor: pointer;
+            font-size: .9rem;
+            white-space: nowrap;
+            transition: background .2s;
+            flex-shrink: 0;
+        }
+
+        .btn-register:hover:not(:disabled) {
+            background: #2d4373;
+        }
+
+        .btn-register:disabled {
+            background: #cbd5e0;
+            color: #718096;
+            cursor: not-allowed;
+        }
+
+        .btn-register.registered {
+            background: #48bb78;
+            cursor: default;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
+            animation: pop .2s ease;
+        }
+
+        @keyframes pop {
+            from {
+                transform: scale(.9);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .modal-detail {
+            background: #f0f4f8;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+            font-size: .9rem;
+            line-height: 1.7;
+        }
+
+        .modal-detail strong {
+            color: #4a6fa5;
+        }
+
+        .modal label {
+            display: block;
+            font-size: .9rem;
+            font-weight: 600;
+            margin-bottom: .3rem;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: .55rem .75rem;
+            border: 1.5px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: .9rem;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .modal input:focus {
+            border-color: #4a6fa5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: .75rem;
+            justify-content: flex-end;
+            margin-top: 1.25rem;
+        }
+
+        .btn-cancel {
+            padding: .55rem 1.1rem;
+            border: 1.5px solid #cbd5e0;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            font-size: .9rem;
+            transition: background .2s;
+        }
+
+        .btn-cancel:hover {
+            background: #f7fafc;
+        }
+
+        .btn-confirm {
+            padding: .55rem 1.1rem;
+            background: #4a6fa5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: .9rem;
+            transition: background .2s;
+        }
+
+        .btn-confirm:hover {
+            background: #2d4373;
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d4373;
+            color: #fff;
+            padding: .75rem 1.5rem;
+            border-radius: 999px;
+            font-size: .9rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s;
+            white-space: nowrap;
+            z-index: 200;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 520px) {
+            .event-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .btn-register {
+                align-self: flex-end;
+            }
+
+            header h1 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Pasākumu Kalendārs</h1>
+        <p>Piesakies uz gaidāmajiem pasākumiem</p>
+    </header>
+
+    <main>
+        <!-- Calendar -->
+        <div class="calendar-nav">
+            <button id="prevMonth">&#8592;</button>
+            <span id="monthLabel"></span>
+            <button id="nextMonth">&#8594;</button>
+        </div>
+        <div class="calendar-grid">
+            <div class="day-names">
+                <div>Pr</div>
+                <div>Ot</div>
+                <div>Tr</div>
+                <div>Ce</div>
+                <div>Pk</div>
+                <div>Se</div>
+                <div>Sv</div>
+            </div>
+            <div class="days" id="daysGrid"></div>
+        </div>
+
+        <!-- Event list -->
+        <div class="section-title">Visi pasākumi</div>
+        <div class="event-list" id="eventList"></div>
+    </main>
+
+    <!-- Registration modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>Pieteikšanās pasākumam</h2>
+            <div class="modal-detail" id="modalDetail"></div>
+            <label for="nameInput">Jūsu vārds un uzvārds</label>
+            <input type="text" id="nameInput" placeholder="Vārds Uzvārds" maxlength="80" />
+            <div id="nameError" style="color:#e53e3e;font-size:.8rem;margin-top:.3rem;display:none;">
+                Lūdzu ievadiet savu vārdu!
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="modalCancel">Atcelt</button>
+                <button class="btn-confirm" id="modalConfirm">Pieteikties</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ── Sample events ──────────────────────────────────────────────────────────
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        function d(offsetDays, h = 14, m = 0) {
+            const dt = new Date(today);
+            dt.setDate(dt.getDate() + offsetDays);
+            dt.setHours(h, m, 0, 0);
+            return dt;
+        }
+
+        const events = [
+            { id: 1, title: "Mūzikas festivāls", date: d(-10, 18), location: "Rīgas Doma laukums, Rīga", color: "#4a6fa5" },
+            { id: 2, title: "Mākslas izstāde", date: d(-3, 10), location: "Latvijas Nacionālais mākslas muzejs", color: "#805ad5" },
+            { id: 3, title: "Bērnu teātris", date: d(1, 11), location: "Jaunais Rīgas teātris", color: "#38a169" },
+            { id: 4, title: "Sporta sacensības", date: d(3, 9), location: "Daugavas stadions, Rīga", color: "#dd6b20" },
+            { id: 5, title: "Gastronomijas tirgus", date: d(5, 12), location: "Āgenskalna tirgus", color: "#d53f8c" },
+            { id: 6, title: "Kino vakars", date: d(7, 19), location: "Splendid Palace kino, Rīga", color: "#4a6fa5" },
+            { id: 7, title: "Lekcija par vēsturi", date: d(12, 17), location: "Latvijas Universitāte, 1. auditorija", color: "#805ad5" },
+            { id: 8, title: "Labdarības koncerts", date: d(20, 18), location: "Dzintaru koncertzāle, Jūrmala", color: "#38a169" },
+            { id: 9, title: "Tehnoloģiju konference", date: d(25, 10), location: "Riga TechHub, Marijas iela 2", color: "#dd6b20" },
+        ];
+
+        // ── State ──────────────────────────────────────────────────────────────────
+        const registrations = {};   // eventId → registrant name
+        let viewYear = today.getFullYear();
+        let viewMonth = today.getMonth();
+        let pendingId = null;
+
+        // ── Helpers ────────────────────────────────────────────────────────────────
+        const pad = n => String(n).padStart(2, "0");
+
+        function formatDate(dt) {
+            const days = ["svētdiena", "pirmdiena", "otrdiena", "trešdiena", "ceturtdiena", "piektdiena", "sestdiena"];
+            const months = ["janvāris", "februāris", "marts", "aprīlis", "maijs", "jūnijs",
+                "jūlijs", "augusts", "septembris", "oktobris", "novembris", "decembris"];
+            return `${days[dt.getDay()]}, ${dt.getDate()}. ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+        }
+
+        function formatTime(dt) { return `${pad(dt.getHours())}:${pad(dt.getMinutes())}`; }
+
+        function isPast(ev) { return ev.date < today; }
+
+        // ── Toast ──────────────────────────────────────────────────────────────────
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 3000);
+        }
+
+        // ── Render calendar ────────────────────────────────────────────────────────
+        function renderCalendar() {
+            const label = document.getElementById("monthLabel");
+            const grid = document.getElementById("daysGrid");
+
+            const months = ["Janvāris", "Februāris", "Marts", "Aprīlis", "Maijs", "Jūnijs",
+                "Jūlijs", "Augusts", "Septembris", "Oktobris", "Novembris", "Decembris"];
+            label.textContent = `${months[viewMonth]} ${viewYear}`;
+
+            grid.innerHTML = "";
+
+            const firstDay = new Date(viewYear, viewMonth, 1);
+            // Monday-based: 0=Mon … 6=Sun
+            const startOffset = (firstDay.getDay() + 6) % 7;
+            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+            // empty leading cells
+            for (let i = 0; i < startOffset; i++) {
+                const cell = document.createElement("div");
+                cell.className = "day empty";
+                grid.appendChild(cell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cellDate = new Date(viewYear, viewMonth, day);
+                const isPastDay = cellDate < today;
+                const isTodayDay = cellDate.getTime() === today.getTime();
+
+                const cell = document.createElement("div");
+                cell.className = "day" + (isPastDay ? " past" : "") + (isTodayDay ? " today" : "");
+
+                const num = document.createElement("div");
+                num.className = "day-num";
+                num.textContent = day;
+                cell.appendChild(num);
+
+                // find events on this day
+                const dayEvents = events.filter(ev => {
+                    const ed = new Date(ev.date);
+                    return ed.getFullYear() === viewYear && ed.getMonth() === viewMonth && ed.getDate() === day;
+                });
+
+                dayEvents.forEach(ev => {
+                    const dot = document.createElement("span");
+                    dot.className = "event-dot " + (isPast(ev) ? "past-ev" : "future");
+                    dot.style.background = isPast(ev) ? "#a0aec0" : ev.color;
+                    dot.textContent = ev.title;
+                    dot.title = ev.title;
+                    if (!isPast(ev)) {
+                        dot.addEventListener("click", () => openModal(ev.id));
+                    }
+                    cell.appendChild(dot);
+                });
+
+                grid.appendChild(cell);
+            }
+        }
+
+        document.getElementById("prevMonth").addEventListener("click", () => {
+            viewMonth--;
+            if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+            renderCalendar();
+        });
+        document.getElementById("nextMonth").addEventListener("click", () => {
+            viewMonth++;
+            if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+            renderCalendar();
+        });
+
+        // ── Render event list ──────────────────────────────────────────────────────
+        function renderList() {
+            const list = document.getElementById("eventList");
+            list.innerHTML = "";
+
+            const sorted = [...events].sort((a, b) => a.date - b.date);
+
+            sorted.forEach(ev => {
+                const past = isPast(ev);
+                const registered = !!registrations[ev.id];
+
+                const card = document.createElement("div");
+                card.className = "event-card" + (past ? " past-card" : "");
+
+                card.innerHTML = `
+        <div class="event-info">
+          <h3>${ev.title}</h3>
+          <div class="event-meta">
+            <span class="meta-date">${formatDate(ev.date)}</span>
+            <span class="meta-time">${formatTime(ev.date)}</span>
+            <span class="meta-loc">${ev.location}</span>
+          </div>
+        </div>
+      `;
+
+                const btn = document.createElement("button");
+                btn.className = "btn-register" + (registered ? " registered" : "");
+
+                if (past) {
+                    btn.textContent = "Pagājis";
+                    btn.disabled = true;
+                } else if (registered) {
+                    btn.textContent = "✓ Pieteicies";
+                    btn.disabled = true;
+                } else {
+                    btn.textContent = "Pieteikties";
+                    btn.addEventListener("click", () => openModal(ev.id));
+                }
+
+                card.appendChild(btn);
+                list.appendChild(card);
+            });
+        }
+
+        // ── Modal ──────────────────────────────────────────────────────────────────
+        function openModal(id) {
+            const ev = events.find(e => e.id === id);
+            if (!ev || isPast(ev)) return;
+
+            pendingId = id;
+            document.getElementById("modalDetail").innerHTML = `
+      <strong>Pasākums:</strong> ${ev.title}<br>
+      <strong>Datums:</strong> ${formatDate(ev.date)}<br>
+      <strong>Laiks:</strong> ${formatTime(ev.date)}<br>
+      <strong>Vieta:</strong> ${ev.location}
+    `;
+            document.getElementById("nameInput").value = "";
+            document.getElementById("nameError").style.display = "none";
+            document.getElementById("modalOverlay").classList.add("open");
+            document.getElementById("nameInput").focus();
+        }
+
+        function closeModal() {
+            document.getElementById("modalOverlay").classList.remove("open");
+            pendingId = null;
+        }
+
+        document.getElementById("modalCancel").addEventListener("click", closeModal);
+        document.getElementById("modalOverlay").addEventListener("click", e => {
+            if (e.target === document.getElementById("modalOverlay")) closeModal();
+        });
+
+        document.getElementById("modalConfirm").addEventListener("click", () => {
+            const name = document.getElementById("nameInput").value.trim();
+            if (!name) {
+                document.getElementById("nameError").style.display = "block";
+                document.getElementById("nameInput").focus();
+                return;
+            }
+            const ev = events.find(e => e.id === pendingId);
+            registrations[pendingId] = name;
+            closeModal();
+            renderCalendar();
+            renderList();
+            showToast(`✓ ${name}, tu esi pieteicies uz pasākumu "${ev.title}"!`);
+        });
+
+        // Allow Enter key in name field
+        document.getElementById("nameInput").addEventListener("keydown", e => {
+            if (e.key === "Enter") document.getElementById("modalConfirm").click();
+        });
+
+        // ── Init ───────────────────────────────────────────────────────────────────
+        renderCalendar();
+        renderList();
+    </script>
+</body>
+
+</html>
